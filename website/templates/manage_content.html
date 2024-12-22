@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Content</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body class="bg-light">
+    <nav class="navbar navbar-expand-lg navbar-light bg-black">
+        <div class="container">
+            <a class="navbar-brand text-white" href="/">BRACU Lost & Found</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item"><a class="nav-link text-white" href="{{ url_for('manage_users') }}">Manage Users</a></li>
+                    <li class="nav-item"><a class="nav-link text-white" href="{{ url_for('manage_items') }}">Manage Items</a></li>
+                    <li class="nav-item"><a class="nav-link text-white" href="{{ url_for('manage_content') }}">Manage Content</a></li>
+                    <li class="nav-item"><a class="nav-link text-white" href="{{ url_for('logout') }}">Logout</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-5">
+        <h1>Manage Content</h1>
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Title</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for post in posts %}
+                <tr>
+                    <td>{{ post['id'] }}</td>
+                    <td>{{ post['title'] }}</td>
+                    <td>
+                        <form action="{{ url_for('delete_post', post_id=post['id']) }}" method="post" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete this post?');">
+                            <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>
