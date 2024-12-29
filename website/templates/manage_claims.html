@@ -13,12 +13,10 @@
             <thead>
                 <tr>
                     <th>Claim ID</th>
-                    <th>Item Title</th>
                     <th>Question 1</th>
                     <th>Question 2</th>
                     <th>Question 3</th>
                     <th>Claim Status</th>
-                    <th>Item Status</th>
                     <th>Actions</th>
                 </tr>
             </thead>
@@ -26,12 +24,10 @@
                 {% for claim in claims %}
                 <tr>
                     <td>{{ claim.claim_id }}</td>
-                    <td>{{ claim.title }}</td>
                     <td>{{ claim.question_1 }}</td>
                     <td>{{ claim.question_2 }}</td>
                     <td>{{ claim.question_3 }}</td>
                     <td>{{ claim.claim_status }}</td>
-                    <td>{{ claim.item_status }}</td>
                     <td>
                         <form action="{{ url_for('manage_claims') }}" method="POST" style="display:inline;">
                             <input type="hidden" name="claim_id" value="{{ claim.claim_id }}">
@@ -39,6 +35,7 @@
                         </form>
                         <form action="{{ url_for('manage_claims') }}" method="POST" style="display:inline;">
                             <input type="hidden" name="claim_id" value="{{ claim.claim_id }}">
+                            <textarea name="rejection_reason" placeholder="Reason for rejection" class="form-control mb-2" rows="2"></textarea>
                             <button type="submit" name="action" value="reject" class="btn btn-danger">Reject</button>
                         </form>
                     </td>

@@ -36,38 +36,36 @@
         <h1 class="mb-4">Admin Dashboard</h1>
         <p>Welcome to the Admin Dashboard. Use the navigation links to manage users, items, and content.</p>
 
-        <!-- Combined Claims and Claimed Items Section -->
-        <h2 class="mt-5">Claims and Claimed Items Management</h2>
+        <!-- Claims Management Section -->
+        <h2 class="mt-5">Claims Management</h2>
         <table class="table table-bordered">
             <thead>
                 <tr>
                     <th>Claim ID</th>
-                    <th>Item Title</th>
+                    <th>Item Title</th> <!-- New column for item title -->
                     <th>Question 1</th>
                     <th>Question 2</th>
                     <th>Question 3</th>
                     <th>Claim Status</th>
-                    <th>Item Status</th>
                     <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
                 {% for claim in claims %}
                 <tr>
-                    <td>{{ claim.claim_id }}</td>
-                    <td>{{ claim.title }}</td>
+                    <td>{{ claim.id }}</td>
+                    <td>{{ claim.title }}</td> <!-- Display item title -->
                     <td>{{ claim.question_1 }}</td>
                     <td>{{ claim.question_2 }}</td>
                     <td>{{ claim.question_3 }}</td>
-                    <td>{{ claim.claim_status }}</td>
-                    <td>{{ claim.item_status }}</td>
+                    <td>{{ claim.status }}</td>
                     <td>
                         <form action="{{ url_for('manage_claims') }}" method="POST" style="display:inline;">
-                            <input type="hidden" name="claim_id" value="{{ claim.claim_id }}">
+                            <input type="hidden" name="claim_id" value="{{ claim.id }}">
                             <button type="submit" name="action" value="approve" class="btn btn-success">Approve</button>
                         </form>
                         <form action="{{ url_for('manage_claims') }}" method="POST" style="display:inline;">
-                            <input type="hidden" name="claim_id" value="{{ claim.claim_id }}">
+                            <input type="hidden" name="claim_id" value="{{ claim.id }}">
                             <button type="submit" name="action" value="reject" class="btn btn-danger">Reject</button>
                         </form>
                     </td>

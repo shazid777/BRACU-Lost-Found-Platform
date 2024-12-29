@@ -18,6 +18,9 @@ def initialize_db():
 
     # Drop posts table if it exists
     cursor.execute("DROP TABLE IF EXISTS posts")
+    
+    # Drop items table if it exists
+    cursor.execute("DROP TABLE IF EXISTS items")  # Added line to drop items table
 
     # Create users table
     cursor.execute("""
@@ -82,7 +85,7 @@ def initialize_db():
     )
     """)
 
-    # Create claims table
+    # Create claims table with a unique constraint
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS claims (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -91,8 +94,10 @@ def initialize_db():
         question_1 TEXT,
         question_2 TEXT,
         question_3 TEXT,
-        answers TEXT,  -- Added answers column
+        answers TEXT,
         status TEXT DEFAULT 'pending',
+        rejection_reason TEXT,
+        UNIQUE(item_id, user_id),  -- Ensure a user can only claim an item once
         FOREIGN KEY (item_id) REFERENCES items (id),
         FOREIGN KEY (user_id) REFERENCES users (id)
     )
@@ -126,7 +131,7 @@ def initialize_db():
     print("Database initialized successfully!")
 
 def update_claims_table():
-    """Update the claims table to ensure the question columns exist."""
+    """Update the claims table to ensure all required columns exist."""
     conn = get_db_connection()
     cursor = conn.cursor()
 
@@ -135,6 +140,8 @@ def update_claims_table():
     columns = [column[1] for column in cursor.fetchall()]
 
     # Add columns if they do not exist
+    if 'status' not in columns:  # Ensure status column exists
+        cursor.execute("ALTER TABLE claims ADD COLUMN status TEXT DEFAULT 'pending';")
     if 'question_1' not in columns:
         cursor.execute("ALTER TABLE claims ADD COLUMN question_1 TEXT;")
     if 'question_2' not in columns:
@@ -143,6 +150,8 @@ def update_claims_table():
         cursor.execute("ALTER TABLE claims ADD COLUMN question_3 TEXT;")
     if 'answers' not in columns:  # Ensure answers column exists
         cursor.execute("ALTER TABLE claims ADD COLUMN answers TEXT;")
+    if 'rejection_reason' not in columns:  # Ensure rejection_reason column exists
+        cursor.execute("ALTER TABLE claims ADD COLUMN rejection_reason TEXT;")
 
     conn.commit()
     conn.close()
@@ -290,7 +299,19 @@ def claim_item(item_id, user_id, question_1, question_2, question_3, answers):
     """Claim an item by a user."""
     conn = get_db_connection()
     cursor = conn.cursor()
-    
+
+    # Check if the item exists
+    cursor.execute("SELECT * FROM items WHERE id = ?", (item_id,))
+    if not cursor.fetchone():
+        print(f"Item with ID {item_id} does not exist.")
+        return False
+
+    # Check if the user exists
+    cursor.execute("SELECT * FROM users WHERE id = ?", (user_id,))
+    if not cursor.fetchone():
+        print(f"User with ID {user_id} does not exist.")
+        return False
+
     # Check if answers is None or empty, and set a default value if needed
     if answers is None or answers.strip() == "":
         answers = ""  # Set to an empty string or any default value you prefer
@@ -325,23 +346,27 @@ def get_claims_for_item(item_id):
     conn.close()
     return claims
 
-def insert_claim(item_id, user_id, question_1, question_2, question_3, answers):
-    """Insert a new claim into the claims table."""
+def get_claims_for_item_and_user(item_id, user_id):
+    """Fetch claims for a specific item by a specific user."""
+    conn = get_db_connection()
+    claims = conn.execute('SELECT * FROM claims WHERE item_id = ? AND user_id = ?', (item_id, user_id)).fetchall()
+    conn.close()
+    return claims
+
+def insert_claim(item_id, user_id, question_1, question_2, question_3, answers, status):
+    """Insert a new claim into the claims table and return the claim ID."""
     conn = get_db_connection()
     cursor = conn.cursor()
-    
-    # Check if answers is None or empty, and set a default value if needed
-    if answers is None or answers.strip() == "":
-        answers = ""  # Set to an empty string or any default value you prefer
+
+    print(f"Inserting claim: item_id={item_id}, user_id={user_id}, question_1={question_1}, question_2={question_2}, question_3={question_3}, answers={answers}, status={status}")  # Debugging line
 
     try:
         cursor.execute(
-            'INSERT INTO claims (item_id, user_id, question_1, question_2, question_3, answers) VALUES (?, ?, ?, ?, ?, ?)',
-            (item_id, user_id, question_1, question_2, question_3, answers)
+            'INSERT INTO claims (item_id, user_id, question_1, question_2, question_3, answers, status) VALUES (?, ?, ?, ?, ?, ?, ?)',
+            (item_id, user_id, question_1, question_2, question_3, answers, status)
         )
-        # Update item status to claimed
-        cursor.execute('UPDATE items SET status = ? WHERE id = ?', ('claimed', item_id))
         conn.commit()
+        return cursor.lastrowid  # Return the ID of the inserted claim
     except sqlite3.IntegrityError as e:
         print(f"IntegrityError occurred: {e}")  # Log the error
         return False
@@ -351,7 +376,22 @@ def insert_claim(item_id, user_id, question_1, question_2, question_3, answers):
     finally:
         conn.close()
 
-    return True  # Indicate success
+# New function to fetch claims for the admin dashboard
+def get_claims_for_admin():
+    """Fetch all claims for the admin dashboard along with item titles."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute('''
+        SELECT claims.id, claims.question_1, claims.question_2, claims.question_3, claims.status, items.title
+        FROM claims
+        JOIN items ON claims.item_id = items.id
+    ''')
+    claims = cursor.fetchall()
+    
+    print("Claims fetched for admin dashboard:", claims)  # Debugging line
+    conn.close()
+    return claims
 
 # Messaging functions
 
@@ -399,34 +439,33 @@ def get_posts_logic():
     posts = cursor.fetchall()
     conn.close()
     return [dict(post) for post in posts]  # Convert rows to dictionaries
-    """Search for posts based on category and keyword."""
+
+def search_items(category, keyword):
+    """
+    Search for items based on category and keyword.
+
+    Args:
+        category (str): The category of the item (e.g., "Electronics").
+        keyword (str): A keyword to search in the title or description.
+
+    Returns:
+        list: A list of dictionaries containing matching items.
+    """
     conn = get_db_connection()
     cursor = conn.cursor()
 
-def search_posts(category=None, keyword=None):
-    """Search for posts based on category and keyword across all items."""
-    conn = get_db_connection()
-    cursor = conn.cursor()
+    query = """
+        SELECT * FROM posts
+        WHERE category LIKE ? AND (title LIKE ? OR description LIKE ?)
+    """
+    search_category = f"%{category}%"
+    search_keyword = f"%{keyword}%"
 
-    query = "SELECT * FROM posts WHERE 1=1"  # Base query
-    params = []
-
-    if category:
-        query += " AND category = ?"
-        params.append(category)
-
-    if keyword:
-        query += " AND (title LIKE ? OR description LIKE ?)"
-        keyword_param = f"%{keyword}%"
-        params.extend([keyword_param, keyword_param])
-
-    cursor.execute(query, params)
-    posts = cursor.fetchall()
+    cursor.execute(query, (search_category, search_keyword, search_keyword))
+    results = cursor.fetchall()
     conn.close()
 
-    return [dict(post) for post in posts]
-
-
+    return [dict(post) for post in results]
 
 
 

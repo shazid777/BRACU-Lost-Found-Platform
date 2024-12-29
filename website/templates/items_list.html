@@ -59,7 +59,7 @@
                         <th>Last Seen Location</th>
                         <th>Date</th>
                         <th>Category</th>
-                        
+                        <th>Image</th>
                         <th>Action</th>
                     </tr>
                 </thead>
@@ -71,10 +71,21 @@
                         <td>{{ item.last_seen_location }}</td>
                         <td>{{ item.date }}</td>
                         <td>{{ item.category }}</td>
-                        
                         <td>
-                            <a href="{{ url_for('claim_item_route', item_id=item.id) }}" class="btn btn-warning btn-sm">Claim</a>
-                            
+                            {% if item.photo_path %}
+                            <img src="{{ item.photo_path }}" alt="Item Image" style="width: 100px; height: auto;">
+                            {% else %}
+                            No Image
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if item.status == 'claimed' %}
+                                <span class="badge bg-secondary">Claimed</span>
+                            {% elif item.status == 'pending' %}
+                                <span class="badge bg-warning">Pending</span>
+                            {% else %}
+                                <a href="{{ url_for('claim_item_route', item_id=item.id) }}" class="btn btn-warning btn-sm">Claim</a>
+                            {% endif %}
                         </td>
                     </tr>
                     {% endfor %}

@@ -8,6 +8,7 @@ from time import sleep
 from data import send_message, get_messages, add_message, get_user_conversations, claim_item  # Import the new functions
 from data import create_post, get_unclaimed_items, get_posts_logic, insert_found_post, fetch_found_posts
 from data import insert_claim, get_claims_for_admin, get_claims_for_item_and_user  # Import the new function
+from data import search_items
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your_secret_key'
@@ -572,24 +573,18 @@ def create_found_post_route():
     else:
         return jsonify({"error": "Failed to create found post."}), 500
 
-@app.route('/search', methods=['GET'])
+@app.route('/search', methods=['GET', 'POST'])
 def search():
-    # Get category and keyword from the form
-    category = request.args.get('category')
-    keyword = request.args.get('keyword')
+    results = None
+    if request.method == 'POST':
+        # Get form data
+        category = request.form.get('category', '')
+        keyword = request.form.get('keyword', '')
 
-    # Fetch categories for the dropdown (always available)
-    categories = get_categories()
+        # Perform the search
+        results = search_items(category, keyword)
 
-    # Initialize posts as an empty list
-    posts = []
-
-    # If a search is made (category or keyword provided), perform the search
-    if category or keyword:
-        posts = search_posts(category=category, keyword=keyword)
-
-    return render_template('search.html', categories=categories, posts=posts)
-
-
+    # Render the merged search.html template
+    return render_template('search.html', results=results)
 if __name__ == '__main__':
     app.run(debug=True)  # standard Flask run

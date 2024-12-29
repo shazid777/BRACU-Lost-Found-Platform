@@ -63,15 +63,17 @@
     <script>
         document.getElementById('claim-form').addEventListener('submit', function (event) {
             event.preventDefault();  // Prevent the default form submission
-    
+
             const formData = {
-                item_id: {{ item_id | tojson }},  // Ensure item_id is passed correctly
                 question_1: this.question_1.value,
                 question_2: this.question_2.value,
                 question_3: this.question_3.value,
             };
-    
-            fetch(`/claim/${formData.item_id}`, {
+
+            // Get the item_id from the context
+            const itemId = {{ item_id | tojson }};  // Ensure item_id is passed correctly
+
+            fetch(`/claim/${itemId}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -81,7 +83,7 @@
             .then(response => {
                 if (!response.ok) {
                     return response.json().then(err => {
-                        throw new Error(err.error || 'Unknown error');
+                        throw new Error(err.error || 'Unknown error occurred');
                     });
                 }
                 return response.json();
@@ -91,7 +93,7 @@
                 document.getElementById('claim-form').reset();
             })
             .catch(error => {
-                document.getElementById('response-message').innerHTML = `<div class="alert alert-danger">There was a problem with the fetch operation: ${error.message}</div>`;
+                document.getElementById('response-message').innerHTML = `<div class="alert alert-danger">There was a problem: ${error.message}</div>`;
             });
         });
     </script>
