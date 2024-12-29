@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Matching Posts</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="text-center mb-4">Matching Posts</h1>
+        
+        {% if matches and matches|length > 0 %}
+            <table class="table table-bordered table-striped table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th scope="col">Lost Item</th>
+                        <th scope="col">Found Item</th>
+                        <th scope="col">Lost Location</th>
+                        <th scope="col">Found Location</th>
+                        <th scope="col">Similarity (%)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for match in matches %}
+                        <tr>
+                            <td>{{ match['lost_title'] }}</td>
+                            <td>{{ match['found_title'] }}</td>
+                            <td>{{ match['lost_location'] }}</td>
+                            <td>{{ match['found_location'] }}</td>
+                            <td>{{ (match['similarity'] * 100) | round(2) }}%</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <div class="alert alert-warning text-center" role="alert">
+                No matching posts found.
+            </div>
+        {% endif %}
+        
+        <div class="text-center mt-4">
+            <a href="/" class="btn btn-primary">Back to Home</a>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lost and Found - Find Matches</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <h1>Find Matches</h1>
+
+    <!-- Input Form -->
+    <form id="findMatchForm">
+        <label for="title">Title:</label>
+        <input type="text" id="title" name="title" placeholder="Enter title" required><br><br>
+
+        <label for="description">Description:</label>
+        <input type="text" id="description" name="description" placeholder="Enter description" required><br><br>
+
+        <label for="last_seen_location">Last Seen Location:</label>
+        <input type="text" id="last_seen_location" name="last_seen_location" placeholder="Enter location" required><br><br>
+
+        <button type="submit">Find Matches</button>
+    </form>
+
+    <!-- Display Results -->
+    <h2>Search Results</h2>
+    <div id="results">
+        <!-- Results will appear here -->
+    </div>
+
+    <!-- JavaScript -->
+    <script>
+        document.getElementById('findMatchForm').addEventListener('submit', function (e) {
+            e.preventDefault();
+
+            // Collect form data
+            const title = document.getElementById('title').value;
+            const description = document.getElementById('description').value;
+            const location = document.getElementById('last_seen_location').value;
+
+            // Prepare request payload
+            const requestData = {
+                title: title,
+                description: description,
+                last_seen_location: location
+            };
+
+            // Send POST request to the server
+            fetch('/findMatches', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(requestData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Display results
+                const resultsDiv = document.getElementById('results');
+                resultsDiv.innerHTML = ""; // Clear previous results
+
+                if (data.matches && data.matches.length > 0) {
+                    data.matches.forEach(match => {
+                        const matchItem = `
+                            <div style="border: 1px solid #ddd; margin: 10px; padding: 10px;">
+                                <h3>${match.title}</h3>
+                                <p><strong>Description:</strong> ${match.description}</p>
+                                <p><strong>Category:</strong> ${match.category}</p>
+                                <p><strong>Location:</strong> ${match.last_seen_location}</p>
+                                <p><strong>Date:</strong> ${match.date}</p>
+                                <p><strong>Photos:</strong> ${match.photos || "No photo available"}</p>
+                            </div>
+                        `;
+                        resultsDiv.innerHTML += matchItem;
+                    });
+                } else {
+                    resultsDiv.innerHTML = "<p>No matching items found.</p>";
+                }
+            })
+            .catch(error => {
+                console.error("Error:", error);
+                document.getElementById('results').innerHTML = "<p>Something went wrong. Please try again later.</p>";
+            });
+        });
+    </script>
+</body>
+</html>
