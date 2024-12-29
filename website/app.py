@@ -1,6 +1,5 @@
 from flask import Flask, render_template, jsonify, redirect, url_for, request, flash, session
-from flask_socketio import SocketIO, emit, join_room
-from cryptography.fernet import Fernet
+from cryptography.fernet import Fernet, InvalidToken
 import sqlite3
 import os
 import uuid
@@ -13,14 +12,16 @@ from data import insert_claim, get_claims_for_admin, get_claims_for_item_and_use
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your_secret_key'
-socketio = SocketIO(app, async_mode='threading')  # Use threading mode for compatibility
 
 # Initialize Flask-Login
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 
-# Encryption key for secure messaging
-key = Fernet.generate_key()
+# Load the encryption key from a file
+def load_key():
+    return open("secret.key", "rb").read()
+
+key = load_key()
 cipher_suite = Fernet(key)
 
 # Database Path
@@ -409,9 +410,10 @@ def messages(recipient_id):
     if request.method == 'POST':
         content = request.form.get('content')
         if content:
+            encrypted_content = cipher_suite.encrypt(content.encode())  # Encrypt the message
             conn.execute(
                 'INSERT INTO messages (sender_id, recipient_id, content) VALUES (?, ?, ?)',
-                (user_id, recipient_id, content)
+                (user_id, recipient_id, encrypted_content)
             )
             conn.commit()
 
@@ -422,16 +424,38 @@ def messages(recipient_id):
         ORDER BY timestamp ASC
     ''', (user_id, recipient_id, recipient_id, user_id)).fetchall()
 
+    # Decrypt messages before passing to the template
+    decrypted_messages = []
+    for message in messages:
+        try:
+            decrypted_content = cipher_suite.decrypt(message['content']).decode()  # Decrypt here
+            decrypted_messages.append({
+                **dict(message),
+                'content': decrypted_content
+            })
+        except InvalidToken:
+            # Handle the error (e.g., log it, notify the user, etc.)
+            decrypted_messages.append({
+                **dict(message),
+                'content': "Error: Unable to decrypt message."
+            })
+
     recipient = conn.execute('SELECT first_name FROM users WHERE id = ?', (recipient_id,)).fetchone()
     conn.close()
 
-    return render_template('messages.html', messages=messages, recipient=recipient, recipient_id=recipient_id)
+    return render_template('messages.html', messages=decrypted_messages, recipient=recipient, recipient_id=recipient_id)
 
 @app.route('/get_messages', methods=['GET'])
 @login_required
 def get_messages_route():
     user_id = session['user_id']
-    messages = get_messages(user_id)
+    conn = get_db_connection()
+    messages = conn.execute('''
+        SELECT * FROM messages
+        WHERE recipient_id = ?
+        ORDER BY timestamp ASC
+    ''', (user_id,)).fetchall()
+    conn.close()
     return jsonify([dict(message) for message in messages]), 200
 
 @app.route('/admin/manage_users', methods=['GET'])
@@ -540,32 +564,6 @@ def create_found_post_route():
         return jsonify({"message": "Found post created successfully!", "id": post_id}), 201
     else:
         return jsonify({"error": "Failed to create found post."}), 500
-
-# SocketIO Messaging Functions
-@socketio.on('send_message')
-def handle_send_message(data):
-    sender_id = session['user_id']
-    receiver_id = data['receiver_id']
-    message = cipher_suite.encrypt(data['message'].encode())  # Encrypt the message
-
-    # Save the message to the database
-    conn = get_db_connection()
-    conn.execute('INSERT INTO messages (sender_id, receiver_id, message) VALUES (?, ?, ?)',
-                 (sender_id, receiver_id, message))
-    conn.commit()
-    conn.close()
-
-    # Emit the message to the receiver
-    emit('receive_message', {
-        'message': data['message'],  # Send the plain text message
-        'sender_id': sender_id
-    }, room=str(receiver_id))
-
-# Handle joining a room
-@socketio.on('join')
-def on_join(data):
-    room = str(data['room'])
-    join_room(room)
 
 if __name__ == '__main__':
     app.run(debug=True)  # standard Flask run

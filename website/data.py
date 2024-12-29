@@ -108,12 +108,11 @@ def initialize_db():
     CREATE TABLE IF NOT EXISTS messages (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         sender_id INTEGER NOT NULL,
-        receiver_id INTEGER NOT NULL,
-        message TEXT NOT NULL,
+        recipient_id INTEGER NOT NULL,
+        content BLOB NOT NULL,
         timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-        is_read BOOLEAN DEFAULT 0,
         FOREIGN KEY (sender_id) REFERENCES users(id),
-        FOREIGN KEY (receiver_id) REFERENCES users(id)
+        FOREIGN KEY (recipient_id) REFERENCES users(id)
     )
     """)
 
@@ -400,7 +399,7 @@ def send_message(sender_id, recipient_id, content):
     """Send a message from one user to another."""
     conn = get_db_connection()
     conn.execute(
-        'INSERT INTO messages (sender_id, receiver_id, message) VALUES (?, ?, ?)',
+        'INSERT INTO messages (sender_id, recipient_id, content) VALUES (?, ?, ?)',
         (sender_id, recipient_id, content)
     )
     conn.commit()
@@ -410,7 +409,7 @@ def get_messages(user_id):
     """Fetch messages for a user (both sent and received)."""
     conn = get_db_connection()
     messages = conn.execute(
-        'SELECT * FROM messages WHERE receiver_id = ? OR sender_id = ? ORDER BY timestamp DESC',
+        'SELECT * FROM messages WHERE recipient_id = ? OR sender_id = ? ORDER BY timestamp DESC',
         (user_id, user_id)
     ).fetchall()
     conn.close()
@@ -421,7 +420,7 @@ def get_user_conversations(user_id):
     """Fetch all conversations for a user."""
     conn = get_db_connection()
     conversations = conn.execute(
-        'SELECT * FROM messages WHERE sender_id = ? OR receiver_id = ? ORDER BY timestamp DESC',
+        'SELECT * FROM messages WHERE sender_id = ? OR recipient_id = ? ORDER BY timestamp DESC',
         (user_id, user_id)
     ).fetchall()
     conn.close()
