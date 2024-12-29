@@ -1,11 +1,11 @@
-<!-- Updated post.html -->
+<!-- Updated found_post.html -->
 <!DOCTYPE html>
 <html lang="en">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Create and View Posts</title>
+    <title>Create Found Post</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
@@ -30,7 +30,7 @@
                             <li class="nav-item"><a class="nav-link text-white" href="/found_post">Found Post</a></li>
                             <li class="nav-item"><a class="nav-link text-white" href="/findmatch">Find Match</a></li>
                             <li class="nav-item"><a class="nav-link text-white" href="/messages">Messages</a></li>
-                            <li class="nav-item"><a class="nav-link text-white" href="/unclaimed_items">Claim Items</a></li>
+                            <li class="nav-item"><a class="nav-link text-white" href="{{ url_for('unclaimed_items_list') }}">Claim Items</a></li>
                             <li class="nav-item"><a class="nav-link text-white" href="/logout">Log Out</a></li>
                         {% endif %}
                     {% else %}
@@ -43,15 +43,15 @@
     </nav>
 
     <div class="container mt-5">
-        <h1 class="text-center mb-4">Create and View Lost Posts</h1>
+        <h1 class="text-center mb-4">Create and View Found Posts</h1>
 
-        <!-- Create Post Section -->
+        <!-- Create Found Post Section -->
         <div class="card mb-5">
-            <div class="card-header bg-success text-white">
-                <h4>Create a New Post</h4>
+            <div class="card-header bg-info text-white">
+                <h4>Create a New Found Post</h4>
             </div>
             <div class="card-body">
-                <form id="createPostForm">
+                <form id="createFoundPostForm">
                     <div class="mb-3">
                         <label for="title" class="form-label">Title</label>
                         <input type="text" class="form-control" id="title" name="title" placeholder="Enter title" required>
@@ -68,6 +68,7 @@
                             <option value="Personal">Personal</option>
                             <option value="Clothing">Clothing</option>
                             <option value="Books">Books</option>
+                            <option value="Others">Others</option>
                         </select>
                     </div>
                     <div class="mb-3">
@@ -82,19 +83,19 @@
                         <label for="photos" class="form-label">Photos (comma-separated URLs)</label>
                         <input type="text" class="form-control" id="photos" name="photos" placeholder="e.g., http://example.com/photo1.jpg, http://example.com/photo2.jpg">
                     </div>
-                    <button type="submit" class="btn btn-success w-100">Submit Post</button>
+                    <button type="submit" class="btn btn-info w-100">Submit Found Post</button>
                 </form>
-                <p id="postResult" class="text-success mt-3"></p>
+                <p id="foundPostResult" class="text-success mt-3"></p>
             </div>
         </div>
 
-        <!-- Posts List Section -->
+        <!-- Found Posts List Section -->
         <div class="card">
             <div class="card-header bg-primary text-white">
-                <h4>Available Posts</h4>
+                <h4>Available Found Posts</h4>
             </div>
             <div class="card-body">
-                <ul id="postsList" class="list-group">
+                <ul id="foundPostsList" class="list-group">
                     {% for post in posts %}
                     <li class="list-group-item">
                         <h5>{{ post.title }}</h5>
@@ -130,14 +131,19 @@
     </div>
 
     <script>
-        // Load Posts
-        function loadPosts() {
-            fetch('/getPosts')
-                .then(response => response.json())
+        // Load Found Posts
+        function loadFoundPosts() {
+            fetch('/getFoundPosts')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
                 .then(data => {
-                    const postsList = document.getElementById("postsList");
-                    postsList.innerHTML = "";
-                    data.posts.forEach(post => {
+                    const foundPostsList = document.getElementById("foundPostsList");
+                    foundPostsList.innerHTML = "";
+                    data.forEach(post => {
                         const listItem = document.createElement("li");
                         listItem.className = "list-group-item";
                         listItem.innerHTML = `
@@ -148,17 +154,17 @@
                             <p><strong>Date:</strong> ${post.date}</p>
                             <p><strong>Photos:</strong> ${post.photos || "N/A"}</p>
                         `;
-                        postsList.appendChild(listItem);
+                        foundPostsList.appendChild(listItem);
                     });
                 })
                 .catch(error => {
-                    console.error("Error loading posts:", error);
+                    console.error("Error loading found posts:", error);
                 });
         }
-        loadPosts();
+        loadFoundPosts();
 
-        // Create Post
-        document.getElementById("createPostForm").addEventListener("submit", function (event) {
+        // Create Found Post
+        document.getElementById("createFoundPostForm").addEventListener("submit", function (event) {
             event.preventDefault();
 
             const formData = new FormData(event.target);
@@ -170,27 +176,32 @@
             const submitButton = event.target.querySelector("button");
             submitButton.disabled = true;
 
-            fetch('/createPost', {
+            fetch('/createFoundPost', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
             })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok: ' + response.statusText);
+                }
+                return response.json();
+            })
             .then(result => {
                 if (result.message) {
-                    document.getElementById("postResult").textContent = result.message;
+                    document.getElementById("foundPostResult").textContent = result.message;
                     event.target.reset();
-                    loadPosts(); // Reload posts after creation
+                    loadFoundPosts();
                 } else if (result.error) {
-                    document.getElementById("postResult").textContent = result.error;
+                    document.getElementById("foundPostResult").textContent = result.error;
                 }
             })
             .catch(error => {
-                console.error("Error submitting post:", error);
-                document.getElementById("postResult").textContent = "An error occurred. Please try again.";
+                console.error("Error submitting found post:", error);
+                document.getElementById("foundPostResult").textContent = "An error occurred. Please try again.";
             })
             .finally(() => {
-                submitButton.disabled = false; // Re-enable the button after the request is complete
+                submitButton.disabled = false;
             });
         });
     </script>

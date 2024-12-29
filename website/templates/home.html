@@ -1,3 +1,4 @@
+<!-- Updated home.html to add Manage Reports button for admin -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -19,19 +20,19 @@
                 <ul class="navbar-nav ms-auto">
                     {% if current_user.is_authenticated %}
                         {% if current_user.is_admin %}
-                            <!-- Admin-specific buttons -->
-                            <li class="nav-item"><a class="nav-link text-white" href="/admin">Admin Dashboard</a></li>
+                            <li class="nav-item"><a class="nav-link text-white" href="/admin/manage_items">Manage Items</a></li>
+                            <li class="nav-item"><a class="nav-link text-white" href="/admin/admin_dashboard">Admin Dashboard</a></li>
                             <li class="nav-item"><a class="nav-link text-white" href="/logout">Log Out</a></li>
                         {% else %}
-                            <!-- User-specific buttons -->
                             <li class="nav-item"><a class="nav-link text-white" href="/profile">Profile</a></li>
-                            <li class="nav-item"><a class="nav-link text-white" href="/post">Post</a></li>
+                            <li class="nav-item"><a class="nav-link text-white" href="/post">Lost Post</a></li>
+                            <li class="nav-item"><a class="nav-link text-white" href="/found_post">Found Post</a></li>
                             <li class="nav-item"><a class="nav-link text-white" href="/findmatch">Find Match</a></li>
-                            <li class="nav-item"><a class="nav-link text-white" href="/messages">Messages</a></li> <!-- Added Messages button -->
+                            <li class="nav-item"><a class="nav-link text-white" href="/messages">Messages</a></li>
+                            <li class="nav-item"><a class="nav-link text-white" href="{{ url_for('unclaimed_items_list') }}">Claim Items</a></li>
                             <li class="nav-item"><a class="nav-link text-white" href="/logout">Log Out</a></li>
                         {% endif %}
                     {% else %}
-                        <!-- Unauthenticated user buttons -->
                         <li class="nav-item"><a class="nav-link text-white" href="/login">Login</a></li>
                         <li class="nav-item"><a class="nav-link text-white" href="/signup">Sign Up</a></li>
                     {% endif %}
@@ -40,15 +41,108 @@
         </div>
     </nav>
 
-    <!-- Welcome Message -->
-    <div class="container text-center mt-5">
-        <h1 class="display-4">Welcome to the BRACU Lost and Found!</h1>
-        {% if current_user.is_authenticated %}
-            <p class="lead">Hello, {{ current_user.first_name }}! You are logged in.</p>
-        {% else %}
-            <p class="lead">Please login or sign up to continue.</p>
-        {% endif %}
+    {% if not current_user.is_admin %}
+    <!-- Posts Display -->
+    <div class="container mt-5">
+        <h1 class="text-center mb-4">All Posts</h1>
+
+        <!-- Sorting Dropdown -->
+        <form method="GET" action="/" class="mb-4">
+            <label for="sort_by">Sort by:</label>
+            <select name="sort_by" class="form-select" onchange="this.form.submit()">
+                <option value="recent" {% if sort_by == 'recent' %}selected{% endif %}>Recent Posts</option>
+                <option value="name_asc" {% if sort_by == 'name_asc' %}selected{% endif %}>Name (A-Z)</option>
+                <option value="name_desc" {% if sort_by == 'name_desc' %}selected{% endif %}>Name (Z-A)</option>
+            </select>
+        </form>
+
+        <!-- Lost Posts Section -->
+        <h2 class="mb-3">Lost Posts</h2>
+        <ul class="list-group mb-5">
+            {% for post in lost_posts %}
+            <li class="list-group-item">
+                <h5>{{ post.title }}</h5>
+                <p><strong>Category:</strong> {{ post.category }}</p>
+                <p><strong>Description:</strong> {{ post.description }}</p>
+                <p><strong>Last Seen Location:</strong> {{ post.last_seen_location }}</p>
+                <p><strong>Date:</strong> {{ post.date }}</p>
+
+                <!-- Report Dropdown -->
+                <div class="dropdown mt-3">
+                    <button class="btn btn-danger btn-sm dropdown-toggle" type="button" id="reportDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                        Report
+                    </button>
+                    <ul class="dropdown-menu" aria-labelledby="reportDropdown">
+                        <form method="POST" action="/report_post">
+                            <input type="hidden" name="post_id" value="{{ post.id }}">
+                            <li class="dropdown-item">
+                                <label for="report_reason">Reason:</label>
+                                <select name="report_reason" class="form-select">
+                                    <option value="Inappropriate">Inappropriate</option>
+                                    <option value="False News">False News</option>
+                                    <option value="Fraud or Scam">Fraud or Scam</option>
+                                    <option value="Misinformation">Misinformation</option>
+                                    <option value="Spam">Spam</option>
+                                </select>
+                            </li>
+                            <li class="dropdown-item">
+                                <label for="description">Description (optional):</label>
+                                <textarea name="description" class="form-control" rows="3" maxlength="200"></textarea>
+                            </li>
+                            <li class="text-center mt-2">
+                                <button type="submit" class="btn btn-danger btn-sm">Submit Report</button>
+                            </li>
+                        </form>
+                    </ul>
+                </div>
+            </li>
+            {% endfor %}
+        </ul>
+
+        <!-- Found Posts Section -->
+        <h2 class="mb-3">Found Posts</h2>
+        <ul class="list-group">
+            {% for post in found_posts %}
+            <li class="list-group-item">
+                <h5>{{ post.title }}</h5>
+                <p><strong>Category:</strong> {{ post.category }}</p>
+                <p><strong>Description:</strong> {{ post.description }}</p>
+                <p><strong>Last Seen Location:</strong> {{ post.last_seen_location }}</p>
+                <p><strong>Date:</strong> {{ post.date }}</p>
+
+                <!-- Report Dropdown -->
+                <div class="dropdown mt-3">
+                    <button class="btn btn-danger btn-sm dropdown-toggle" type="button" id="reportDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                        Report
+                    </button>
+                    <ul class="dropdown-menu" aria-labelledby="reportDropdown">
+                        <form method="POST" action="/report_post">
+                            <input type="hidden" name="post_id" value="{{ post.id }}">
+                            <li class="dropdown-item">
+                                <label for="report_reason">Reason:</label>
+                                <select name="report_reason" class="form-select">
+                                    <option value="Inappropriate">Inappropriate</option>
+                                    <option value="False News">False News</option>
+                                    <option value="Fraud or Scam">Fraud or Scam</option>
+                                    <option value="Misinformation">Misinformation</option>
+                                    <option value="Spam">Spam</option>
+                                </select>
+                            </li>
+                            <li class="dropdown-item">
+                                <label for="description">Description (optional):</label>
+                                <textarea name="description" class="form-control" rows="3" maxlength="200"></textarea>
+                            </li>
+                            <li class="text-center mt-2">
+                                <button type="submit" class="btn btn-danger btn-sm">Submit Report</button>
+                            </li>
+                        </form>
+                    </ul>
+                </div>
+            </li>
+            {% endfor %}
+        </ul>
     </div>
+    {% endif %}
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
 </body>

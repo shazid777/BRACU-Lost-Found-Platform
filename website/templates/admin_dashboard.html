@@ -18,9 +18,9 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
                     {% if session['is_admin'] %}
-
                         <li class="nav-item"><a class="nav-link text-white" href="{{ url_for('manage_users') }}">Manage Users</a></li>
-                        <li class="nav-item"><a class="nav-link text-white" href="{{ url_for('manage_items') }}">Manage Items</a></li>
+                        <li class="nav-item"><a class="nav-link text-white" href="{{ url_for('manage_reports') }}">Manage Reports</a></li>
+                        <li class="nav-item"><a class="nav-link text-white" href="{{ url_for('manage_claims') }}">Manage claims</a></li>
                         <li class="nav-item"><a class="nav-link text-white" href="{{ url_for('manage_content') }}">Manage Content</a></li>
                         <li class="nav-item"><a class="nav-link text-white" href="{{ url_for('logout') }}">Log Out</a></li>
                     {% else %}
@@ -36,6 +36,42 @@
     <div class="container mt-5">
         <h1 class="mb-4">Admin Dashboard</h1>
         <p>Welcome to the Admin Dashboard. Use the navigation links to manage users, items, and content.</p>
+
+        <!-- Claims Management Section -->
+        <h2 class="mt-5">Claims Management</h2>
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th>Claim ID</th>
+                    <th>Question 1</th>
+                    <th>Question 2</th>
+                    <th>Question 3</th>
+                    <th>Claim Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for claim in claims %}
+                <tr>
+                    <td>{{ claim.id }}</td>
+                    <td>{{ claim.question_1 }}</td>
+                    <td>{{ claim.question_2 }}</td>
+                    <td>{{ claim.question_3 }}</td>
+                    <td>{{ claim.status }}</td>
+                    <td>
+                        <form action="{{ url_for('manage_claims') }}" method="POST" style="display:inline;">
+                            <input type="hidden" name="claim_id" value="{{ claim.id }}">
+                            <button type="submit" name="action" value="approve" class="btn btn-success">Approve</button>
+                        </form>
+                        <form action="{{ url_for('manage_claims') }}" method="POST" style="display:inline;">
+                            <input type="hidden" name="claim_id" value="{{ claim.id }}">
+                            <button type="submit" name="action" value="reject" class="btn btn-danger">Reject</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
 
     <!-- Scripts -->
