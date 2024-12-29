@@ -1,4 +1,5 @@
 from flask import Flask, render_template, jsonify, redirect, url_for, request, flash, session
+from flask_socketio import SocketIO, join_room
 from cryptography.fernet import Fernet, InvalidToken
 import sqlite3
 import os
@@ -12,6 +13,7 @@ from data import insert_claim, get_claims_for_admin, get_claims_for_item_and_use
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your_secret_key'
+socketio = SocketIO(app)  # Initialize SocketIO
 
 # Initialize Flask-Login
 login_manager = LoginManager(app)
@@ -565,5 +567,17 @@ def create_found_post_route():
     else:
         return jsonify({"error": "Failed to create found post."}), 500
 
+# Socket.IO event handlers
+@socketio.on('join')
+def on_join(data):
+    room = data['room']
+    join_room(room)
+
+@socketio.on('send_message')
+def handle_send_message(data):
+    message = data['message']
+    room = data['room']
+    socketio.emit('receive_message', {'sender': session['user_id'], 'message': message}, room=room)
+
 if __name__ == '__main__':
-    app.run(debug=True)  # standard Flask run
+    socketio.run(app, debug=True)  # Using socketio.run to handle both Flask and Socket.IO

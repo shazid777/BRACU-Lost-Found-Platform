@@ -104,6 +104,7 @@ def initialize_db():
     """)
 
     # Create messages table
+    cursor.execute("DROP TABLE IF EXISTS messages")
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS messages (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
