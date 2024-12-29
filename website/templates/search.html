@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Search Items</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-black">
+        <div class="container">
+            <a class="navbar-brand text-white" href="/">Home</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    {% if current_user.is_authenticated %}
+                        {% if current_user.is_admin %}
+                            <li class="nav-item"><a class="nav-link text-white" href="/admin">Admin Dashboard</a></li>
+                            <li class="nav-item"><a class="nav-link text-white" href="{{ url_for('manage_claims') }}">Manage Claims</a></li>
+                            <li class="nav-item"><a class="nav-link text-white" href="/logout">Log Out</a></li>
+                        {% else %}
+                            <li class="nav-item"><a class="nav-link text-white" href="/profile">Profile</a></li>
+                            <li class="nav-item"><a class="nav-link text-white" href="/post">Lost Post</a></li>
+                            <li class="nav-item"><a class="nav-link text-white" href="/messages">Messages</a></li>
+                            <li class="nav-item"><a class="nav-link text-white" href="/search">Search</a></li>
+                            <li class="nav-item"><a class="nav-link text-white" href="{{ url_for('unclaimed_items_list') }}">Claim Items</a></li>
+                            <!-- Loop through items to create claim links -->
+                            {% for item in items %}
+                                <li class="nav-item">
+                                    <a class="nav-link text-white" href="{{ url_for('claim_item_route', item_id=item.id) }}">Claim {{ item.name }}</a>
+                                </li>
+                            {% endfor %}
+                            <li class="nav-item"><a class="nav-link text-white" href="/logout">Log Out</a></li>
+                        {% endif %}
+                    {% else %}
+                        <li class="nav-item"><a class="nav-link text-white" href="/login">Login</a></li>
+                        <li class="nav-item"><a class="nav-link text-white" href="/signup">Sign Up</a></li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-5">
+        <h1 class="text-center mb-4">Search Lost and Found Items</h1>
+
+        <!-- Search Form -->
+        <form action="/search" method="get" class="row g-3">
+            <div class="col-md-6">
+                <label for="category" class="form-label">Category</label>
+                <select name="category" id="category" class="form-select">
+                    <option value="">All Categories</option>
+                    {% for category in categories %}
+                    <option value="{{ category.name }}">{{ category.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-6">
+                <label for="keyword" class="form-label">Keyword</label>
+                <input type="text" name="keyword" id="keyword" class="form-control" placeholder="Enter keyword">
+            </div>
+            <div class="col-12 text-center">
+                <button type="submit" class="btn btn-primary">Search</button>
+            </div>
+        </form>
+
+        <!-- Search Results -->
+        <div class="mt-5">
+            <h2 class="mb-4">Search Results</h2>
+            {% if posts %}
+            <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+                {% for post in posts %}
+                <div class="col">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title">{{ post.title }}</h5>
+                            <p class="card-text">{{ post.description }}</p>
+                            <p class="text-muted">
+                                <strong>Category:</strong> {{ post.category }}<br>
+                                <strong>Last Seen:</strong> {{ post.last_seen_location }}<br>
+                                <strong>Date:</strong> {{ post.date }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="text-muted">No items found for your search criteria.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Bootstrap JS (optional) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
