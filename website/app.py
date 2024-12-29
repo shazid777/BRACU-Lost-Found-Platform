@@ -7,8 +7,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from time import sleep
 from data import send_message, get_messages, add_message, get_user_conversations, claim_item  # Import the new functions
 from data import create_post, get_unclaimed_items, get_posts_logic, insert_found_post, fetch_found_posts
-from data import insert_claim
-from data import search_posts, get_categories
+from data import insert_claim, get_claims_for_admin, get_claims_for_item_and_user  # Import the new function
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your_secret_key'
@@ -74,10 +73,9 @@ def login():
             session['is_admin'] = user.is_admin  # Store is_admin in session
             flash('Login successful!', 'success')
 
-            if user.is_admin:
-                return redirect(url_for('admin_dashboard'))
-            else:
-                return redirect(url_for('profile'))
+            # Redirect to the homepage instead of the profile
+            return redirect(url_for('home'))  # Change this line
+
         else:
             flash('Login unsuccessful. Please check your email and password.', 'danger')
 
@@ -332,18 +330,32 @@ def claim_item_route(item_id):
         question_2 = data.get('question_2')
         question_3 = data.get('question_3')
 
-        print(f"Received data: {data}")  # Log the received data
-
         if not question_1 or not question_2 or not question_3:
             return jsonify({"error": "All questions must be answered."}), 400
 
-        # Insert claim into the database
-        success = insert_claim(item_id, user_id, question_1, question_2, question_3, '')
+        # Check if the user has already submitted a claim for this item
+        existing_claims = get_claims_for_item_and_user(item_id, user_id)
+        if existing_claims:
+            # Check if the existing claim is pending
+            if existing_claims[0]['status'] == 'pending':
+                return jsonify({"error": "You have already submitted a claim for this item. Status: pending."}), 400
+            else:
+                # If the existing claim is not pending, allow them to submit a new claim
+                # Optionally, you can update the existing claim or handle it differently
+                # For now, we will just allow them to submit a new claim
+                pass
 
-        if success:
-            return jsonify({"message": "Claim Request Submitted. Wait for Admin Response"}), 200
-        else:
-            return jsonify({"error": "Failed to submit claim."}), 500
+        try:
+            # Insert claim into the database
+            claim_id = insert_claim(item_id, user_id, question_1, question_2, question_3, '', 'pending')
+
+            if claim_id:
+                return jsonify({"message": "Claim request submitted. Wait for admin response.", "status": "pending"}), 200
+            else:
+                return jsonify({"error": "Failed to submit claim. Please try again."}), 500
+
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
 
     # Render the claim form for GET requests
     return render_template('claim_form.html', item_id=item_id)
@@ -356,20 +368,10 @@ def admin_dashboard():
         flash('Access denied: Admins only!', 'danger')
         return redirect(url_for('profile'))
 
-    # Fetch claims and claimed items in one query
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("""
-        SELECT claims.id AS claim_id, found_items.title, claims.question_1, claims.question_2, claims.question_3, 
-               claims.status AS claim_status, found_items.status AS item_status 
-        FROM claims 
-        JOIN found_items ON claims.item_id = found_items.id
-    """)
-    claims_combined = cursor.fetchall()
-    conn.close()
-    
-    print("Claims fetched for admin dashboard:", claims_combined)  # Debugging line
-    return render_template('admin_dashboard.html', claims=claims_combined)
+    # Fetch claims for the admin dashboard
+    claims = get_claims_for_admin()  # Call the new function
+    print("Claims fetched for admin dashboard:", claims)  # Debugging line
+    return render_template('admin_dashboard.html', claims=claims)
 
 # Admin manage claims
 @app.route('/admin/manage_claims', methods=['GET', 'POST'])
@@ -384,27 +386,22 @@ def manage_claims():
     if request.method == 'POST':
         claim_id = request.form['claim_id']
         action = request.form['action']
+        rejection_reason = request.form.get('rejection_reason', '')  # Optional rejection reason
 
         if action == 'approve':
-            conn.execute('UPDATE claims SET status = "approved" WHERE id = ?', (claim_id,))
-            conn.execute('UPDATE found_items SET status = "claimed" WHERE id = (SELECT item_id FROM claims WHERE id = ?)', (claim_id,))
+            conn.execute('UPDATE claims SET status = "Approved" WHERE id = ?', (claim_id,))
+            conn.execute('UPDATE items SET status = "claimed" WHERE id = (SELECT item_id FROM claims WHERE id = ?)', (claim_id,))
             flash('Claim approved successfully!', 'success')
         elif action == 'reject':
-            conn.execute('UPDATE claims SET status = "rejected" WHERE id = ?', (claim_id,))
+            conn.execute('UPDATE claims SET status = "Rejected", rejection_reason = ? WHERE id = ?', (rejection_reason, claim_id))
             flash('Claim rejected successfully!', 'danger')
 
         conn.commit()
+        conn.close()
+        return redirect(url_for('admin_dashboard'))  # Redirect back to the admin dashboard
 
-    claims = conn.execute("""
-        SELECT claims.id AS claim_id, found_items.title, claims.question_1, claims.question_2, claims.question_3, 
-               claims.status AS claim_status, found_items.status AS item_status 
-        FROM claims 
-        JOIN found_items ON claims.item_id = found_items.id
-    """).fetchall()
-    conn.close()
-    
-    print("Claims fetched for manage claims:", claims)  # Debugging line
-    return render_template('manage_claims.html', claims=claims)
+    # If GET request, just redirect to the admin dashboard
+    return redirect(url_for('admin_dashboard'))
 
 # New route for user dashboard
 @app.route('/dashboard')
@@ -422,6 +419,7 @@ def dashboard():
 @login_required
 def messages_list():
     user_id = session['user_id']
+    print(f"User ID: {user_id}, Is Admin: {current_user.is_admin}")  # Debugging line
     conversations = get_user_conversations(user_id)  # Fetch all conversations
     return render_template('messages_list.html', conversations=conversations)
 
@@ -591,13 +589,6 @@ def search():
         posts = search_posts(category=category, keyword=keyword)
 
     return render_template('search.html', categories=categories, posts=posts)
-
-
-
-
-
-
-
 
 
 if __name__ == '__main__':
