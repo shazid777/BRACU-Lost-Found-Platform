@@ -25,6 +25,7 @@
                     <th>Last Seen Location</th>
                     <th>Date</th>
                     <th>Report Reason</th>
+                    <th>Report Category</th>
                     <th>Report Details</th>
                     <th>Actions</th>
                 </tr>
@@ -38,6 +39,11 @@
                     <td>{{ report.last_seen_location }}</td>
                     <td>{{ report.date }}</td>
                     <td>{{ report.report_reason }}</td>
+                    <td>
+                        <span style="font-weight: {% if report.report_category == 'Important' %}bold{% else %}normal{% endif %};">
+                            {{ report.report_category }}
+                        </span>
+                    </td>
                     <td>{{ report.report_details }}</td>
                     <td>
                         <form method="POST" action="{{ url_for('manage_reports') }}" style="display:inline;">

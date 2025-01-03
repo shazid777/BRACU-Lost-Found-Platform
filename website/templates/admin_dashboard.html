@@ -20,7 +20,7 @@
                     {% if session['is_admin'] %}
                         <li class="nav-item"><a class="nav-link text-white" href="{{ url_for('manage_users') }}">Manage Users</a></li>
                         <li class="nav-item"><a class="nav-link text-white" href="{{ url_for('manage_reports') }}">Manage Reports</a></li>
-                        <li class="nav-item"><a class="nav-link text-white" href="{{ url_for('manage_claims') }}">Manage claims</a></li>
+                        <li class="nav-item"><a class="nav-link text-white" href="{{ url_for('manage_claims') }}">Manage Claims</a></li>
                         <li class="nav-item"><a class="nav-link text-white" href="{{ url_for('manage_content') }}">Manage Content</a></li>
                         <li class="nav-item"><a class="nav-link text-white" href="{{ url_for('logout') }}">Log Out</a></li>
                     {% else %}
@@ -72,6 +72,34 @@
                 {% endfor %}
             </tbody>
         </table>
+
+        <!-- Chatbot Messages Section -->
+        <h2 class="mt-5">Chatbot Messages</h2>
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th>Message ID</th>
+                    <th>User</th>
+                    <th>User Message</th>
+                    <th>Bot Response</th>
+                    <th>Custom Response</th>
+                    <th>Timestamp</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for message in chatbot_messages %}
+                <tr>
+                    <td>{{ message['id'] }}</td>
+                    <td>{{ message['user_name'] or 'Guest' }}</td>
+                    <td>{{ message['message'] }}</td>
+                    <td>{{ message['response'] }}</td>
+                    <td>{{ 'Yes' if message['is_custom'] else 'No' }}</td>
+                    <td>{{ message['timestamp'] }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
     </div>
 
     <!-- Scripts -->

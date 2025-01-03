@@ -1,4 +1,3 @@
-<!-- Updated home.html to add Manage Reports button for admin -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -7,6 +6,14 @@
     <title>Home</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        /* Ensure that links are inside the post borders */
+        .post-link {
+            word-wrap: break-word;  /* Allow the text to wrap if necessary */
+            display: inline-block;
+            max-width: 100%;  /* Make sure it doesn't overflow */
+        }
+    </style>
 </head>
 <body class="bg-light">
     <!-- Navbar -->
@@ -64,7 +71,9 @@
                 <h5>{{ post.title }}</h5>
                 <p><strong>Category:</strong> {{ post.category }}</p>
                 <p><strong>Description:</strong> {{ post.description }}</p>
-                <p><strong>Last Seen Location:</strong> {{ post.last_seen_location }}</p>
+                <p><strong>Last Seen Location:</strong>
+                    <a class="post-link" href="https://www.google.com/maps?q={{ post.last_seen_location }}" target="_blank">{{ post.last_seen_location }}</a>
+                </p>
                 <p><strong>Date:</strong> {{ post.date }}</p>
 
                 <!-- Report Dropdown -->
@@ -72,29 +81,39 @@
                     <button class="btn btn-danger btn-sm dropdown-toggle" type="button" id="reportDropdown" data-bs-toggle="dropdown" aria-expanded="false">
                         Report
                     </button>
-                    <ul class="dropdown-menu" aria-labelledby="reportDropdown">
-                        <form method="POST" action="/report_post">
-                            <input type="hidden" name="post_id" value="{{ post.id }}">
-                            <li class="dropdown-item">
-                                <label for="report_reason">Reason:</label>
-                                <select name="report_reason" class="form-select">
-                                    <option value="Inappropriate">Inappropriate</option>
-                                    <option value="False News">False News</option>
-                                    <option value="Fraud or Scam">Fraud or Scam</option>
-                                    <option value="Misinformation">Misinformation</option>
-                                    <option value="Spam">Spam</option>
-                                </select>
-                            </li>
-                            <li class="dropdown-item">
-                                <label for="description">Description (optional):</label>
-                                <textarea name="description" class="form-control" rows="3" maxlength="200"></textarea>
-                            </li>
-                            <li class="text-center mt-2">
-                                <button type="submit" class="btn btn-danger btn-sm">Submit Report</button>
-                            </li>
-                        </form>
+                    <ul class="dropdown-menu p-3" aria-labelledby="reportDropdown">
+                        <li>
+                            <form method="POST" action="/report_post">
+                                <input type="hidden" name="post_id" value="{{ post.id }}">
+                                <div class="mb-2">
+                                    <label for="report_reason" class="form-label">Reason:</label>
+                                    <select name="report_reason" class="form-select">
+                                        <option value="Inappropriate">Inappropriate</option>
+                                        <option value="False News">False News</option>
+                                        <option value="Fraud or Scam">Fraud or Scam</option>
+                                        <option value="Misinformation">Misinformation</option>
+                                        <option value="Spam">Spam</option>
+                                    </select>
+                                </div>
+                                <div class="mb-2">
+                                    <label for="report_category" class="form-label">Category:</label>
+                                    <select name="report_category" class="form-select">
+                                        <option value="Important">Important</option>
+                                        <option value="Regular">Regular</option>
+                                    </select>
+                                </div>
+                                <div class="mb-2">
+                                    <label for="description" class="form-label">Description (optional):</label>
+                                    <textarea name="description" class="form-control" rows="3" maxlength="200"></textarea>
+                                </div>
+                                <div class="text-center">
+                                    <button type="submit" class="btn btn-danger btn-sm">Submit Report</button>
+                                </div>
+                            </form>
+                        </li>
                     </ul>
                 </div>
+                
             </li>
             {% endfor %}
         </ul>
@@ -107,7 +126,9 @@
                 <h5>{{ post.title }}</h5>
                 <p><strong>Category:</strong> {{ post.category }}</p>
                 <p><strong>Description:</strong> {{ post.description }}</p>
-                <p><strong>Last Seen Location:</strong> {{ post.last_seen_location }}</p>
+                <p><strong>Last Seen Location:</strong>
+                    <a class="post-link" href="https://www.google.com/maps?q={{ post.last_seen_location }}" target="_blank">{{ post.last_seen_location }}</a>
+                </p>
                 <p><strong>Date:</strong> {{ post.date }}</p>
 
                 <!-- Report Dropdown -->
@@ -117,7 +138,7 @@
                     </button>
                     <ul class="dropdown-menu" aria-labelledby="reportDropdown">
                         <form method="POST" action="/report_post">
-                            <input type="hidden" name="post_id" value="{{ post.id }}">
+                            <input type="hidden" name="post_i<d" value="{{ post.id }}">
                             <li class="dropdown-item">
                                 <label for="report_reason">Reason:</label>
                                 <select name="report_reason" class="form-select">
@@ -127,6 +148,11 @@
                                     <option value="Misinformation">Misinformation</option>
                                     <option value="Spam">Spam</option>
                                 </select>
+                            <li class="dropdown-item">
+                                <label for="report_category">Reason:</label>
+                                <select name="report_category" class="form-select"> 
+                                    <option value="Important">Important</option>
+                                    <option value="Regular">Regular</option>   
                             </li>
                             <li class="dropdown-item">
                                 <label for="description">Description (optional):</label>
@@ -141,6 +167,131 @@
             </li>
             {% endfor %}
         </ul>
+
+        <!-- Chatbot Button -->
+        <button id="chatbot-toggle" class="btn btn-primary position-fixed chatbot-toggle">Chatbot</button>
+
+
+        <!-- Chatbot Container -->
+        <div id="chatbot-container" class="p-3 border rounded bg-light" style="display: none;">
+            <div id="chatbot-header" class="d-flex justify-content-between align-items-center bg-primary text-white p-2">
+                <span>Chatbot</span>
+                <button id="close-chatbot" class="btn-close btn-close-white"></button>
+            </div>
+            <div id="chatbot-messages" class="mb-2 border p-2 h-[200px] overflow-auto"></div>
+            <div id="chatbot-options" class="mb-2">
+                <button id="faq-button" class="btn btn-secondary btn-sm mb-2">FAQ ▼</button>
+                <div id="predefined-questions" class="d-none"></div>
+            </div>
+            <div id="chatbot-input" class="d-flex align-items-center">
+                <input type="text" id="user-input" class="form-control me-2" placeholder="Type a message...">
+                <button id="send-message" class="btn btn-primary">Send</button>
+            </div>
+        </div>
+        
+        
+        <script>
+            document.addEventListener("DOMContentLoaded", function () {
+                const chatbotContainer = document.getElementById("chatbot-container");
+                const chatbotMessages = document.getElementById("chatbot-messages");
+                const predefinedQuestionsContainer = document.getElementById("predefined-questions");
+                const chatbotToggle = document.getElementById("chatbot-toggle");
+                const closeChatbot = document.getElementById("close-chatbot");
+                const faqButton = document.getElementById("faq-button");
+        
+                // Toggle chatbot visibility
+                chatbotToggle.addEventListener("click", function () {
+                    chatbotContainer.style.display = "block";
+                    chatbotContainer.classList.add("chatbot-expanded");
+                    chatbotToggle.style.display = "none";
+                    chatbotMessages.innerHTML = `<div><strong>Bot:</strong> Hello! How can I help you?</div>`;
+                });
+        
+                closeChatbot.addEventListener("click", function () {
+                    chatbotContainer.style.display = "none";
+                    chatbotContainer.classList.remove("chatbot-expanded");
+                    chatbotToggle.style.display = "block";
+                });
+        
+                // FAQ button click handler
+                faqButton.addEventListener("click", function () {
+                    predefinedQuestionsContainer.innerHTML = ""; // Clear previous questions
+                    predefinedQuestionsContainer.classList.toggle("d-none");
+        
+                    if (!predefinedQuestionsContainer.classList.contains("d-none")) {
+                        const predefinedQuestions = [
+                            "What is this site?",
+                            "How do I post?",
+                            "How can I claim an item?",
+                            "Who manages the posts?"
+                        ];
+        
+                        predefinedQuestions.forEach(question => {
+                            const button = document.createElement("button");
+                            button.className = "btn btn-secondary btn-sm m-1 predefined-question";
+                            button.textContent = question;
+                            button.dataset.question = question;
+                            predefinedQuestionsContainer.appendChild(button);
+                        });
+        
+                        attachPredefinedQuestionHandlers();
+                    }
+                });
+        
+                // Function to handle predefined question clicks
+                function attachPredefinedQuestionHandlers() {
+                    const questionButtons = document.querySelectorAll(".predefined-question");
+                    questionButtons.forEach(button => {
+                        button.addEventListener("click", async function () {
+                            const userMessage = this.dataset.question;
+        
+                            // Display user message
+                            chatbotMessages.innerHTML += `<div><strong>You:</strong> ${userMessage}</div>`;
+        
+                            // Send question to backend
+                            const response = await fetch("/chatbot", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({ message: userMessage })
+                            });
+        
+                            const data = await response.json();
+        
+                            // Display bot response
+                            chatbotMessages.innerHTML += `<div><strong>Bot:</strong> ${data.response}</div>`;
+                            chatbotMessages.scrollTop = chatbotMessages.scrollHeight;
+                        });
+                    });
+                }
+        
+                // Handle user input
+                const sendMessageButton = document.getElementById("send-message");
+                sendMessageButton.addEventListener("click", async function () {
+                    const userInput = document.getElementById("user-input");
+                    const userMessage = userInput.value.trim();
+                    if (!userMessage) return;
+        
+                    // Display user message
+                    chatbotMessages.innerHTML += `<div><strong>You:</strong> ${userMessage}</div>`;
+                    userInput.value = "";
+        
+                    // Send message to backend
+                    const response = await fetch("/chatbot", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ message: userMessage })
+                    });
+        
+                    const data = await response.json();
+        
+                    // Display bot response
+                    chatbotMessages.innerHTML += `<div><strong>Bot:</strong> ${data.response}</div>`;
+                    chatbotMessages.scrollTop = chatbotMessages.scrollHeight;
+                });
+            });
+        </script>
+        
+        
     </div>
     {% endif %}
 

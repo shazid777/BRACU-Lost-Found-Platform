@@ -136,6 +136,7 @@ def initialize_reports_table():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             post_id TEXT NOT NULL,
             report_reason TEXT NOT NULL,
+
             description TEXT,
             FOREIGN KEY (post_id) REFERENCES posts (id)
         )
@@ -145,9 +146,60 @@ def initialize_reports_table():
 
 initialize_reports_table()
 
+def add_report_category_column():
+    """Add the report_category column to the reports table."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # Check if the column already exists to avoid error
+    cursor.execute("PRAGMA table_info(reports)")
+    columns = [column[1] for column in cursor.fetchall()]
+    
+    if 'report_category' not in columns:
+        cursor.execute("""
+            ALTER TABLE reports
+            ADD COLUMN report_category TEXT NOT NULL DEFAULT 'Regular'
+        """)
+        conn.commit()
+    
+    conn.close()
+
+add_report_category_column()
+
+
+def add_report_category_column():
+    """Add the report_category column to the reports table."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+
+    cursor.execute("PRAGMA table_info(reports)")
+    columns = [column[1] for column in cursor.fetchall()]
+    
+
+    if 'report_category' not in columns:
+        cursor.execute("""
+            ALTER TABLE reports
+            ADD COLUMN report_category TEXT
+        """)
+        conn.commit()
+
+
+    cursor.execute("""
+        UPDATE reports
+        SET report_category = 'Regular'
+        WHERE report_category IS NULL
+    """)
+    conn.commit()
+    conn.close()
+
+add_report_category_column()
+
+
+
 
 def initialize_chatbot_table():
-    """Create a chatbot table."""
+    """Create a table to store chatbot messages."""
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("""
@@ -165,6 +217,7 @@ def initialize_chatbot_table():
     conn.close()
 
 initialize_chatbot_table()
+
 
 
 
@@ -496,7 +549,7 @@ def get_all_reports():
     """Fetch all reports from the database."""
     conn = get_db_connection()
     reports = conn.execute("""
-        SELECT r.id AS report_id, p.id AS post_id, p.title, p.description, p.category, p.last_seen_location, p.date, r.report_reason, r.description AS report_details
+        SELECT r.id AS report_id, p.id AS post_id, p.title, p.description, p.category, p.last_seen_location, p.date, r.report_reason, r.report_category, r.description AS report_details
         FROM reports r
         JOIN posts p ON r.post_id = p.id
     """).fetchall()

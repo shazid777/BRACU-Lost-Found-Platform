@@ -364,12 +364,13 @@ def claim_item_route(item_id):
 def report_post():
     post_id = request.form['post_id']
     report_reason = request.form['report_reason']
+    report_category = request.form['report_category']
     description = request.form.get('description', '')
 
     conn = get_db_connection()
     conn.execute(
-        'INSERT INTO reports (post_id, report_reason, description) VALUES (?, ?, ?)',
-        (post_id, report_reason, description)
+        'INSERT INTO reports (post_id, report_reason, report_category, description) VALUES (?, ?, ?, ?)',
+        (post_id, report_reason, report_category, description)
     )
     conn.commit()
     conn.close()
@@ -388,9 +389,19 @@ def admin_dashboard():
         return redirect(url_for('profile'))
 
     # Fetch claims for the admin dashboard
-    claims = get_claims_for_admin()  # Call the new function
-    print("Claims fetched for admin dashboard:", claims)  # Debugging line
-    return render_template('admin_dashboard.html', claims=claims)
+    claims = get_claims_for_admin()
+
+    # Fetch chatbot messages
+    conn = get_db_connection()
+    chatbot_messages = conn.execute("""
+        SELECT cm.id, u.first_name AS user_name, cm.message, cm.response, cm.is_custom, cm.timestamp
+        FROM chatbot_messages cm
+        LEFT JOIN users u ON cm.user_id = u.id
+        ORDER BY cm.timestamp DESC
+    """).fetchall()
+    conn.close()
+
+    return render_template('admin_dashboard.html', claims=claims, chatbot_messages=chatbot_messages)
 
 
 # Admin manage claims
@@ -466,38 +477,33 @@ def get_messages_route():
     messages = get_messages(user_id)
     return jsonify([dict(message) for message in messages]), 200
 
+
+
 @app.route('/chatbot', methods=['POST'])
 @login_required
 def chatbot():
-    user_message = request.form['message']
-    offensive_words = ["badword1", "badword2"]  # Add actual offensive words
-    if any(word in user_message.lower() for word in offensive_words):
-        return jsonify({"response": "Warning: Please use appropriate language!"})
-
-    predefined_questions = {
-        "What is this site?": "This is a Lost and Found site.",
-        "How do I post?": "Go to the Post section to create a post."
+    user_message = request.json.get('message', '').strip()
+    predefined_responses = {
+        "What is this site?": "This site helps users post and find lost and found items.",
+        "How do I post?": "Go to the 'Post' section and fill out the required details.",
+        "How can I claim an item?": "Click on the 'Claim Items' tab and follow the instructions.",
+        "Who manages the posts?": "Admins oversee and manage all posts and reports."
     }
 
-    response = predefined_questions.get(user_message, "An admin will answer your queries shortly.")
-    is_custom = response == "An admin will answer your queries shortly."
-
-    conn = get_db_connection()
-    conn.execute(
-        "INSERT INTO chatbot_messages (user_id, message, response, is_custom) VALUES (?, ?, ?, ?)",
-        (current_user.id, user_message, response, is_custom)
-    )
-    conn.commit()
-    conn.close()
-
+    response = predefined_responses.get(user_message, "I didn't understand that. Please ask another question or contact admin.");
     return jsonify({"response": response})
 
 
-
-
-
-
 # Admin Dashboard
+
+
+
+
+#----------------------------------------------------------------------------------------------
+
+
+
+
 @app.route('/admin/manage_users', methods=['GET'])
 @login_required
 def manage_users():
@@ -582,6 +588,17 @@ def edit_user(user_id):
     return render_template('edit_user.html', user=user)
 
 
+@app.route('/admin/chatbot_messages', methods=['GET'])
+@login_required
+def admin_chatbot_messages():
+    if not current_user.is_admin:
+        return redirect(url_for('home'))  # Redirect to home if not an admin
+
+    conn = get_db_connection()
+    messages = conn.execute("SELECT user_id, messages, response, is_custom from chatbot_messages").fetchall()
+    conn.close()
+
+    return render_template('admin_dashboard.html', chatbot_messages=messages)
 
 
 

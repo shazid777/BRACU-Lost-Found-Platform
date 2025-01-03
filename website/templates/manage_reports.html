@@ -1,0 +1,36 @@
+<!-- manage_reports.html -->
+{% extends 'home.html' %}
+{% block content %}
+    <div class="container">
+        <h2>Reported Posts</h2>
+        {% if reports %}
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Post Title</th>
+                        <th>Reason</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for report in reports %}
+                        <tr>
+                            <td>{{ report['title'] }}</td>
+                            <td>{{ report['reason'] }}</td>
+                            <td>
+                                <form action="{{ url_for('delete_reported_post', post_id=report['post_id']) }}" method="POST">
+                                    <button type="submit" class="btn btn-danger">Delete Post</button>
+                                </form>
+                                <form action="{{ url_for('dismiss_report', report_id=report['id']) }}" method="POST">
+                                    <button type="submit" class="btn btn-secondary">Dismiss Report</button>
+                                </form>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p>No reports to display.</p>
+        {% endif %}
+    </div>
+{% endblock %}
